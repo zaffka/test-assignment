@@ -4,20 +4,17 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	_ "embed" // data file is hardcoded using embed functionality
 	"encoding/csv"
 	"errors"
 	"fmt"
 	"io"
 )
 
-//go:embed .data/data.tar.gz
-var dbFile []byte
+// Size in bytes (256Kb) for the initial buffer to where the entities from the tar.gz file read.
+const preallocBufSize = 2048
 
-const preallocBufSize = 2048 // in bytes (256Kb)
-
-// Build reads gzipped tar file with the database and initializes db.Events, db.Commits, db.Repos, db.Actors entities.
-func Build() error {
+// Build accepts gzipped tar file as an argument initializes readers: db.Events, db.Commits, db.Repos, db.Actors.
+func Build(dbFile []byte) error {
 	gr, err := gzip.NewReader(bytes.NewBuffer(dbFile))
 	if err != nil {
 		return err
@@ -36,14 +33,14 @@ func Build() error {
 		}
 
 		if header.Typeflag == tar.TypeReg {
-			buf := bytes.NewBuffer(make([]byte, 0, preallocBufSize)) // allocating 256Kb buffer
+			buf := bytes.NewBuffer(make([]byte, 0, preallocBufSize)) // preallocating 256Kb
 
 			_, err := io.Copy(buf, tr)
 			if err != nil {
 				return fmt.Errorf("failed to read a file: %w", err)
 			}
 
-			csvRdr := csv.NewReader(buf)
+			csvRdr := &Entity{Reader: csv.NewReader(buf)}
 			switch header.Name {
 			case events:
 				Events = csvRdr
@@ -57,5 +54,5 @@ func Build() error {
 		}
 	}
 
-	return nil
+	return dbValid()
 }

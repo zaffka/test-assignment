@@ -3,16 +3,26 @@ package main
 import (
 	"fmt"
 
+	_ "embed"
+
 	"github.com/zaffka/test-assignment/db"
+	"github.com/zaffka/test-assignment/stat"
 )
 
-var version = "dev"
+//go:embed data.tar.gz
+var dbFile []byte
 
 func main() {
-	fmt.Printf("app:%s:opening database\n", version)
-
-	err := db.Build()
+	err := db.Build(dbFile)
 	if err != nil {
-		fmt.Printf("db opening failed with an error: %s", err)
+		fmt.Printf("db opening failed with an error: %s\n", err)
+
+		return
+	}
+
+	stat1 := &stat.Top{}
+	_, err = db.Iterate(stat1.ActorsByCommitsAndPRs())
+	if err != nil {
+		fmt.Printf("failed to iterate over the DB: %s\n", err)
 	}
 }
