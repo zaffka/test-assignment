@@ -6,14 +6,17 @@ import (
 	"io"
 )
 
+// ErrBrokenDBLink is returning if we have no id-alignment between db.Events and db.Actors/db.Repos.
 var ErrBrokenDBLink = errors.New("link between DB entities is broken")
 
-type StatFunc func([]string)
+// RecHandleFunc represents any func to be called on every single db record.
+type RecHandleFunc func([]string)
 
-func Iterate(statFuncs ...StatFunc) ([]string, error) {
+// Iterate cycling thru the database and executes any number of db.RecHandleFuncs on each db row.
+func Iterate(recHandleFuncs ...RecHandleFunc) error {
 	err := dbValid()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	skipCSVheader := true
@@ -25,7 +28,7 @@ func Iterate(statFuncs ...StatFunc) ([]string, error) {
 				break
 			}
 
-			return nil, err
+			return err
 		}
 
 		actor, err := Actors.Read()
@@ -34,7 +37,7 @@ func Iterate(statFuncs ...StatFunc) ([]string, error) {
 				break
 			}
 
-			return nil, err
+			return err
 		}
 
 		repo, err := Repos.Read()
@@ -43,7 +46,7 @@ func Iterate(statFuncs ...StatFunc) ([]string, error) {
 				break
 			}
 
-			return nil, err
+			return err
 		}
 
 		if skipCSVheader {
@@ -54,17 +57,17 @@ func Iterate(statFuncs ...StatFunc) ([]string, error) {
 
 		err = replaceEventIDsByNames(event, actor, repo)
 		if err != nil {
-			return nil, fmt.Errorf("line number %d: %w", lineNumber, err)
+			return fmt.Errorf("line number %d: %w", lineNumber, err)
 		}
 
-		for _, sfn := range statFuncs {
-			sfn(event)
+		for _, rfn := range recHandleFuncs {
+			rfn(event)
 		}
 
 		lineNumber++
 	}
 
-	return nil, nil
+	return nil
 }
 
 func replaceEventIDsByNames(event, actor, repo []string) error {

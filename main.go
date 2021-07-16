@@ -20,9 +20,31 @@ func main() {
 		return
 	}
 
-	stat1 := &stat.Top{}
-	_, err = db.Iterate(stat1.ActorsByCommitsAndPRs())
+	actors := stat.New()
+	repoCommits := stat.New()
+	repoEvents := stat.New()
+
+	err = db.Iterate(
+		actors.ActorsByCommitsAndPRs(),
+		repoCommits.ReposByCommits(),
+		repoEvents.ReposByWatchEvents(),
+	)
 	if err != nil {
 		fmt.Printf("failed to iterate over the DB: %s\n", err)
 	}
+
+	top10repComm := repoCommits.List.SortedByScore()[:10]
+	top10repComm.PrintTable(
+		"Top 10 repositories by commits",
+	)
+
+	top10repEvents := repoEvents.List.SortedByScore()[:10]
+	top10repEvents.PrintTable(
+		"Top 10 repositories by watch events",
+	)
+
+	top10actors := actors.List.SortedByScore()[:10]
+	top10actors.PrintTable(
+		"Top 10 users by PR/Commits",
+	)
 }

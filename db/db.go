@@ -40,7 +40,7 @@ func Build(dbFile []byte) error {
 				return fmt.Errorf("failed to read a file: %w", err)
 			}
 
-			csvRdr := &Entity{Reader: csv.NewReader(buf)}
+			csvRdr := Entity{Reader: csv.NewReader(buf)}
 			switch header.Name {
 			case events:
 				Events = csvRdr
