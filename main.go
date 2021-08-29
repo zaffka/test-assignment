@@ -13,6 +13,7 @@ import (
 var dbFile []byte
 
 func main() {
+	// parse datafile
 	err := db.Build(dbFile)
 	if err != nil {
 		fmt.Printf("db opening failed with an error: %s\n", err)
@@ -20,10 +21,12 @@ func main() {
 		return
 	}
 
+	// init stat handlers
 	actors := stat.New()
 	repoCommits := stat.New()
 	repoEvents := stat.New()
 
+	// iterate over the database using stat handlers on each db record
 	err = db.Iterate(
 		actors.ActorsByCommitsAndPRs(),
 		repoCommits.ReposByCommits(),
@@ -32,6 +35,8 @@ func main() {
 	if err != nil {
 		fmt.Printf("failed to iterate over the DB: %s\n", err)
 	}
+
+	// sorting, slicing and printing necessary results as a table
 
 	top10repComm := repoCommits.List.SortedByScore()[:10]
 	top10repComm.PrintTable(
